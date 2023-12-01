@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: web-service  # Identify this application
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        service-id: configserver
+  config:
+    import: "configserver:"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*" # Enable all endpoints by default
+

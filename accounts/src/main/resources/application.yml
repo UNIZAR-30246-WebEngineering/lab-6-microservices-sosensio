@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: accounts-service  # Identify this application
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        serviceId: configserver
+  config:
+    import: "configserver:"
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*" # Enable all endpoints by default
