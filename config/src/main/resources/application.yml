@@ -8,7 +8,7 @@ spring:
     config:
       server:
         git:
-          uri: https://github.com/UNIZAR-30246-WebEngineering/lab6-microservices-config-repo
+          uri: https://github.com/sosensio/lab6-microservices-config-repo
 
 eureka:
   client:
