@@ -1,5 +1,9 @@
 package web.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JCircuitBreakerFactory;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import web.model.Account;
@@ -16,6 +20,8 @@ import java.util.logging.Logger;
  */
 public class WebAccountsService {
 
+    private final CircuitBreaker circuitBreaker;
+
     private final RestTemplate restTemplate;
 
     private final String serviceUrl;
@@ -23,10 +29,17 @@ public class WebAccountsService {
     private final Logger logger = Logger.getLogger(WebAccountsService.class
             .getName());
 
-    public WebAccountsService(String serviceUrl, RestTemplate restTemplate) {
+    public WebAccountsService(String serviceUrl, RestTemplate restTemplate, CircuitBreakerFactory<?, ?> cbFactory) {
         this.serviceUrl = serviceUrl.startsWith("http") ? serviceUrl
                 : "http://" + serviceUrl;
         this.restTemplate = restTemplate;
+        this.circuitBreaker = cbFactory.create("accounts");
+    }
+
+    private <T> T handleAccountServiceUnavailable() {
+        // TODO !!!
+        System.err.println("Account service unavailable.");
+        return null;
     }
 
     /**
@@ -39,14 +52,15 @@ public class WebAccountsService {
         // Can't do this in the constructor because the RestTemplate injection
         // happens afterwards.
         logger.warning("The RestTemplate request factory is "
-                + restTemplate.getRequestFactory());
+                + circuitBreaker.run(restTemplate::getRequestFactory, throwable -> handleAccountServiceUnavailable()).getClass());
     }
 
     public Account findByNumber(String accountNumber) {
 
         logger.info("findByNumber() invoked: for " + accountNumber);
-        return restTemplate.getForObject(serviceUrl + "/accounts/{number}",
-                Account.class, accountNumber);
+        return circuitBreaker.run(() -> restTemplate.getForObject(serviceUrl + "/accounts/{number}",
+                Account.class, accountNumber),
+                throwable -> handleAccountServiceUnavailable());
     }
 
     public List<Account> byOwnerContains(String name) {
@@ -54,8 +68,9 @@ public class WebAccountsService {
         Account[] accounts = null;
 
         try {
-            accounts = restTemplate.getForObject(serviceUrl
-                    + "/accounts/owner/{name}", Account[].class, name);
+            accounts = circuitBreaker.run(() -> restTemplate.getForObject(serviceUrl
+                    + "/accounts/owner/{name}", Account[].class, name),
+                    throwable -> handleAccountServiceUnavailable());
         } catch (HttpClientErrorException e) { // 404
             // Nothing found
         }
