@@ -54,6 +54,11 @@ public class WebAccountsController {
         logger.info("web-service byNumber() invoked: " + accountNumber);
 
         Account account = accountsService.findByNumber(accountNumber);
+
+        if (account == null) {
+            return "accountsDown";
+        }
+
         logger.info("web-service byNumber() found: " + account);
         model.addAttribute("account", account);
         return "account";
@@ -64,11 +69,14 @@ public class WebAccountsController {
         logger.info("web-service byOwner() invoked: " + name);
 
         List<Account> accounts = accountsService.byOwnerContains(name);
+
+        if (accounts == null) {
+            return "accountsDown";
+        }
+
         logger.info("web-service byOwner() found: " + accounts);
         model.addAttribute("search", name);
-        if (accounts != null) {
-            model.addAttribute("accounts", accounts);
-        }
+        model.addAttribute("accounts", accounts);
         return "accounts";
     }
 
