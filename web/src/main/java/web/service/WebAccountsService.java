@@ -1,7 +1,5 @@
 package web.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JCircuitBreakerFactory;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
 import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.web.client.HttpClientErrorException;
@@ -36,11 +34,6 @@ public class WebAccountsService {
         this.circuitBreaker = cbFactory.create("accounts");
     }
 
-    private <T> T handleAccountServiceUnavailable() {
-        // TODO !!!
-        System.err.println("Account service unavailable.");
-        return null;
-    }
 
     /**
      * The RestTemplate works because it uses a custom request-factory that uses
@@ -52,7 +45,7 @@ public class WebAccountsService {
         // Can't do this in the constructor because the RestTemplate injection
         // happens afterwards.
         logger.warning("The RestTemplate request factory is "
-                + circuitBreaker.run(restTemplate::getRequestFactory, throwable -> handleAccountServiceUnavailable()).getClass());
+                + circuitBreaker.run(restTemplate::getRequestFactory, throwable -> null));
     }
 
     public Account findByNumber(String accountNumber) {
@@ -60,7 +53,7 @@ public class WebAccountsService {
         logger.info("findByNumber() invoked: for " + accountNumber);
         return circuitBreaker.run(() -> restTemplate.getForObject(serviceUrl + "/accounts/{number}",
                 Account.class, accountNumber),
-                throwable -> handleAccountServiceUnavailable());
+                throwable -> null);
     }
 
     public List<Account> byOwnerContains(String name) {
@@ -70,7 +63,7 @@ public class WebAccountsService {
         try {
             accounts = circuitBreaker.run(() -> restTemplate.getForObject(serviceUrl
                     + "/accounts/owner/{name}", Account[].class, name),
-                    throwable -> handleAccountServiceUnavailable());
+                    throwable -> null);
         } catch (HttpClientErrorException e) { // 404
             // Nothing found
         }
